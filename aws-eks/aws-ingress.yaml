@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: onprem-runtime-ingress 
+  namespace: <placeholder> 
+  annotations: 
+    kubernetes.io/ingress.class: nginx  # Links to NGINX Ingress Controller 
+spec: 
+  rules: 
+  - host: <placeholder> 
+    http: 
+      paths: 
+      - path: /api/v1/inspect 
+        pathType: Prefix 
+        backend: 
+          service: 
+            name: ai-defense-apigateway 
+            port: 
+              number: 8080 
+      - path: / 
+        pathType: Prefix 
+        backend: 
+          service: 
+            name: ai-defense-proxy-service 
+            port: 
+              number: 8080 
+  tls: 
+  - hosts: 
+    - example.com 
+    secretName: aid-tls-secret  # TLS secret for HTTPS

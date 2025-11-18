@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/<OIDC_PROVIDER_URL>"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "<OIDC_PROVIDER_URL>:sub": "system:serviceaccount:ai-defense-onprem:ai-defense-onpremises-ai-defense-onprem-validation-generative-validation-service",
+          "<OIDC_PROVIDER_URL>:aud": "sts.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
