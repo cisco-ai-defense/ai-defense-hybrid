@@ -118,6 +118,12 @@ managedNodeGroups:
     labels:
       node_group: gpu-dedicated
 
+    # Taints for GPU nodes
+    taints:
+      - key: dedicated
+        value: gpu-dedicated
+        effect: PreferNoSchedule
+
     # Tags for ASG (required for cluster autoscaler)
     tags:
       "k8s.io/cluster-autoscaler/enabled": "true"
