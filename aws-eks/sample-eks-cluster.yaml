@@ -1,0 +1,145 @@
+###################################################
+# AI Defense Hybrid Deployment Example cluster.yaml
+#
+# Instructions:
+#  For AWS VPC creation, please refer to AWS documentation:
+#   https://docs.aws.amazon.com/vpc/latest/userguide/create-vpc.html#create-vpc-only
+#  For AWS subnet creation, please refer to AWS documentation:
+#   https://docs.aws.amazon.com/vpc/latest/userguide/create-subnets.html
+#  Do not change nodepool names
+#  Do not change label and taints
+#  Node pool, gpu-dedicated should have an instanceType that has NVIDIA GPU
+#
+###################################################
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ai-defense-hybrid-poc # Edit with desired name
+  region: us-west-2 # Edit with desired region
+  version: "1.32"
+
+vpc:
+  clusterEndpoints:
+    privateAccess: true
+    publicAccess: false
+  controlPlaneSecurityGroupIDs: ["sg-XXXXXXXXXXXXXXXXX"] # Edit with desired SecurityGroupIDs
+  id: vpc-XXXXXXXXXXXXXXXXX # Edit with desired VPC
+  subnets:
+    private: # Edit with desired regions and subnets
+      us-west-2a:
+        id: subnet-XXXXXXXXXXXXXXXXX
+      us-west-2b:
+        id: subnet-XXXXXXXXXXXXXXXXX
+      us-west-2c:
+        id: subnet-XXXXXXXXXXXXXXXXX
+iam:
+  withOIDC: true
+  serviceAccounts:
+  - metadata:
+      name: cluster-autoscaler
+      namespace: kube-system
+      labels: {aws-usage: "aid-hybrid-poc"}
+    wellKnownPolicies:
+      autoScaler: true
+    roleName: eksctl-cluster-autoscaler-role # Edit with desired name
+    roleOnly: true
+  - metadata:
+      name: aws-ebs-csi-driver
+      namespace: kube-system
+    wellKnownPolicies:
+      ebsCSIController: true
+managedNodeGroups:
+  # DPS Node Group
+  - name: dps
+    instanceTypes:
+    - c5n.4xlarge
+    amiFamily: AmazonLinux2023
+    minSize: 4
+    maxSize: 10
+    desiredCapacity: 4
+    volumeSize: 100
+    volumeType: gp3
+    privateNetworking: true
+    subnets: #Edit with desired regions
+    - us-west-2a
+    - us-west-2b
+    - us-west-2c
+    # Labels for DPS nodes
+    labels:
+      node_group: dps
+
+    # Taints for DPS nodes
+    taints:
+      - key: dedicated
+        value: dps
+        effect: PreferNoSchedule
+
+    # Enable auto-scaling for cluster autoscaler
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+
+    # Propagate tags for cluster autoscaler scale-to-zero functionality
+    propagateASGTags: true
+
+    # Tags for ASG (required for cluster autoscaler)
+    tags:
+      "k8s.io/cluster-autoscaler/enabled": "true"
+      "k8s.io/cluster-autoscaler/ai-defense-hybrid-poc": "owned"
+      "k8s.io/cluster-autoscaler/node-template/label/node_group": "dps"
+      "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "dps:PreferNoSchedule"
+
+  # GPU Dedicated Node Group
+  - name: gpu-dedicated
+    instanceTypes:
+    - g6e.xlarge
+    amiFamily: AmazonLinux2023
+    minSize: 3
+    maxSize: 3
+    desiredCapacity: 3
+    volumeSize: 100
+    volumeType: gp3
+    privateNetworking: true
+    subnets: # Edit with desired regions
+    - us-west-2a
+    - us-west-2b
+    - us-west-2c
+    # Enable auto-scaling for cluster autoscaler
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+
+    # Propagate tags for cluster autoscaler scale-to-zero functionality
+    propagateASGTags: true
+
+    # Label for GPU nodes
+    labels:
+      node_group: gpu-dedicated
+
+    # Taints for GPU nodes
+    taints:
+      - key: dedicated
+        value: gpu-dedicated
+        effect: PreferNoSchedule
+
+    # Tags for ASG (required for cluster autoscaler)
+    tags:
+      "k8s.io/cluster-autoscaler/enabled": "true"
+      "k8s.io/cluster-autoscaler/ai-defense-hybrid-poc": "owned"
+      "k8s.io/cluster-autoscaler/node-template/label/node_group": "gpu-dedicated"
+
+# addonsConfig:
+#  autoApplyPodIdentityAssociations: true
+# Add-ons configuration
+addons:
+  # Default add-ons (automatically included with EKS 1.30)
+  - name: kube-proxy
+    version: latest
+  - name: vpc-cni
+    version: latest
+  - name: coredns
+    version: latest
+  - name: aws-ebs-csi-driver
+    version: latest
