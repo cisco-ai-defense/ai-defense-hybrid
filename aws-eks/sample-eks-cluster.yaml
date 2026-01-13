@@ -72,7 +72,7 @@ managedNodeGroups:
     - c5n.4xlarge
     amiFamily: AmazonLinux2023
     minSize: 4
-    maxSize: 10
+    maxSize: 4
     desiredCapacity: 4
     volumeSize: 100
     volumeType: gp3
@@ -111,9 +111,9 @@ managedNodeGroups:
     instanceTypes:
     - g6e.xlarge
     amiFamily: AmazonLinux2023
-    minSize: 3
-    maxSize: 3
-    desiredCapacity: 3
+    minSize: 4
+    maxSize: 4
+    desiredCapacity: 4
     volumeSize: 100
     volumeType: gp3
     privateNetworking: true
