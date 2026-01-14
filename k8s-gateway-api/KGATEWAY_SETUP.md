@@ -40,6 +40,16 @@ Install the standard Gateway API Custom Resource Definitions (CRDs) required for
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
 ```
 
+Output:-
+
+```console
+customresourcedefinition.apiextensions.k8s.io/backendtlspolicies.gateway.networking.k8s.io created
+customresourcedefinition.apiextensions.k8s.io/gatewayclasses.gateway.networking.k8s.io created
+customresourcedefinition.apiextensions.k8s.io/gateways.gateway.networking.k8s.io created
+customresourcedefinition.apiextensions.k8s.io/grpcroutes.gateway.networking.k8s.io created
+customresourcedefinition.apiextensions.k8s.io/httproutes.gateway.networking.k8s.io created
+customresourcedefinition.apiextensions.k8s.io/referencegrants.gateway.networking.k8s.io created
+```
 ## Step 2: Deploy KGateway CRDs
 
 Install KGateway Custom Resource Definitions using Helm:
@@ -50,13 +60,85 @@ helm upgrade -i --create-namespace \
   --version v2.1.2 kgateway-crds oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds
 ```
 
+Output:-
+
+```console
+Release "kgateway-crds" does not exist. Installing it now.
+Pulled: cr.kgateway.dev/kgateway-dev/charts/kgateway-crds:v2.1.2
+Digest: sha256:77e1b7a96edd4032cda31bbb7aaf70a91fead331c63e98e341cbf38c53ffd683
+NAME: kgateway-crds
+LAST DEPLOYED: Wed Jan 14 19:17:17 2026
+NAMESPACE: kgateway-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing the kgateway-crds chart.
+
+This chart installs the Custom Resource Definitions (CRDs) required by kgateway.
+
+To verify that the CRDs have been installed:
+
+  kubectl get crds | grep 'kgateway'
+
+To uninstall the CRDs:
+
+  helm uninstall kgateway-crds --namespace kgateway-system
+
+Note: The above command does not remove the Custom Resource Definitions (CRDs) installed by this chart.
+You may need to manually delete the CRDs if they are no longer needed. To do so, run:
+
+  kubectl delete crd <crd-name>
+
+Replace <crd-name> with the name of the CRD(s) you wish to delete. For example:
+
+  kubectl delete crd gatewayparameters.gateway.kgateway.dev
+
+To learn how to access and use kgateway, please visit the official documentation:
+
+  https://kgateway.dev/docs/about/custom-resources/#kgateway
+```
 ## Step 3: Install KGateway Control Plane
 
 Deploy the KGateway control plane to the `kgateway-system` namespace:
 
 ```bash
 helm upgrade -i -n kgateway-system kgateway oci://cr.kgateway.dev/kgateway-dev/charts/kgateway \
---version v2.1.2
+--version v2.1.2 --set controller.replicaCount=2
+```
+
+Output:- 
+
+```
+Release "kgateway" does not exist. Installing it now.
+Pulled: cr.kgateway.dev/kgateway-dev/charts/kgateway:v2.1.2
+Digest: sha256:86e6dc75ea16862125344fb75df8a45096a524d797eeb984e54dcbbc61c4905a
+NAME: kgateway
+LAST DEPLOYED: Wed Jan 14 19:17:51 2026
+NAMESPACE: kgateway-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing the kgateway chart.
+
+Your release "kgateway" has been deployed in the "kgateway-system" namespace.
+
+To check the status of the deployment:
+
+  helm status kgateway --namespace kgateway-system
+
+To view the resources created by this chart:
+
+  kubectl get all -n kgateway-system
+
+To learn how to access and use kgateway, please visit the official documentation:
+
+  https://kgateway.dev/docs/
+
+To uninstall the kgateway deployment:
+
+  helm uninstall kgateway --namespace kgateway-system
 ```
 
 ## Step 4: Create TLS Secret
@@ -78,7 +160,7 @@ Replace `/path/to/tls.crt` and `/path/to/tls.key` with the actual paths to your 
 
 ### Option B: Use cert-manager for Automatic Certificate Management
 
-> The AI Defense Hybrid deployment already have cert-manager installed but to support gateway API, we need to set override `config.enableGatewayAPI=true`.
+> The AI Defense Hybrid deployment already have cert-manager installed but to support gateway API, we need to set the override `config.enableGatewayAPI=true` to get support for Gateway API.
 
 ```bash
 helm upgrade \
@@ -105,6 +187,11 @@ spec:
   kube:
     deployment:
       replicas: 3
+    service:
+      extraAnnotations:
+        service.beta.kubernetes.io/aws-load-balancer-internal: "true" # For AWS EKS - If you don't want to expose endpoint outside of VPC
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb" # For AWS EKS - To use the Network LB instead of Classic LB 
+        service.beta.kubernetes.io/azure-load-balancer-internal: "true" # For Azure AKS - If you don't want to expose endpoint outside of VPC
 EOF
 ```
 
@@ -141,9 +228,9 @@ spec:
       - group: ""
         kind: Secret
         name: aid-gateway-tls
-      mode: Terminate 
+      mode: Terminate
       options:
-        kgateway.dev/min-tls-version: "1.3" # Will be available from 2.2.0
+        kgateway.dev/min-tls-version: "1.3" # Will be available from kgateway 2.2.0
 EOF
 ```
 
