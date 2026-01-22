@@ -11,13 +11,14 @@ This document covers the steps to deploy AWS ALB controller for AI Defense Hybri
 
 ## Policy for LB Controller
 
-Download the policy file
+Download the IAM policy file.
 
 ```bash
 curl -o iam-policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.17.0/docs/install/iam_policy.json
 ```
 
-This policy file can only be used for deployment regions except China and US Gov cloud. Refer the upstream documentation to download the policy file for China and US Gov cloud. Installation Guide - AWS Load Balancer Controller 
+This policy file can only be used for deployment regions except China and US Gov cloud. Refer the upstream documentation to download the policy file for China and US Gov cloud. 
+> [Installation Guide - AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.17/deploy/installation/)
 
 ```bash
 aws iam create-policy \
