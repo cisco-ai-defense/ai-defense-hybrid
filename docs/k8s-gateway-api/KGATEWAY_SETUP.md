@@ -211,7 +211,7 @@ metadata:
   name: aid-gateway
   namespace: ai-defense-onprem # The namespace where the services are running
   annotations:
-    cert-manager.io/cluster-issuer: cisco-acme-issuer  # Optional: Remove if not using cert-manager
+    cert-manager.io/cluster-issuer: your-acme-issuer  # Optional: Remove if not using cert-manager
 spec:
   gatewayClassName: kgateway
   infrastructure:
