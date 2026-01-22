@@ -107,6 +107,7 @@ managedNodeGroups:
       "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "dps:PreferNoSchedule"
 
   # GPU Dedicated Node Group
+  # This node group should have an instanceType that has NVIDIA L40S GPU
   - name: gpu-dedicated
     instanceTypes:
     - g6e.xlarge
