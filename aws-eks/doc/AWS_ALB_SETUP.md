@@ -78,6 +78,8 @@ kubectl apply -f crds.yaml
 
 ## Install LB controller helm chart
 
+Make sure to replace `<cluster-name>` with your actual cluster name.
+
 ```bash
 helm upgrade aws-load-balancer-controller eks/aws-load-balancer-controller --install -n kube-system --set clusterName=<cluster-name> --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 ```

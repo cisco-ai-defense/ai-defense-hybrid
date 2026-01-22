@@ -174,7 +174,8 @@ helm upgrade \
 
 ## Step 5: Configure Gateway Parameters
 
-By default, KGateway installs with a single replica. For high availability, configure 3 replicas:
+By default, KGateway installs with a single replica. For high availability, configure 3 replicas.
+> Customize the annotations below according to your cloud provider and deployment requirements (e.g., internal vs. external gateway exposure).
 
 ```bash
 kubectl apply -f- <<EOF
