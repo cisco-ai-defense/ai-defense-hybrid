@@ -37,7 +37,7 @@ image:
 ## - standalone: Single Redis instance
 ## - replication: Master-replica setup (use sentinel.enabled to enable/disable Sentinel)
 ## - cluster: Multi-master setup with optional replicas
-architecture: cluster
+architecture: standalone
 
 ## @param replicaCount Number of Redis instances to deploy (only when architecture=(replication|cluster))
 ## When using architecture=replication:
