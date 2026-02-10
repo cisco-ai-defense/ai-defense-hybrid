@@ -3,7 +3,8 @@ global:
   ## @param global.imageRegistry Global Docker Image registry
   imageRegistry: ""
   ## @param global.imagePullSecrets Global Docker registry secret names as an array
-  imagePullSecrets: []
+  imagePullSecrets:
+  - "regcred"
 
 ## @section Common parameters
 ## @param nameOverride String to partially override redis.fullname
@@ -23,11 +24,11 @@ commonAnnotations: {}
 #* TODO: point towards our own image instead of using dockerhub
 image:
   ## @param image.registry Redis image registry
-  registry: docker.io
+  registry: proxyimages.aidefense.security.cisco.com/proxy/aidefensehybrid/artifactory.devhub-cloud.cisco.com
   ## @param image.repository Redis image repository
-  repository: redis
+  repository: ai-defense-hybrid-docker/redis
   ## @param image.tag Redis image tag
-  tag: "7.2"
+  tag: "v7.2.12-2026.02.03"
   ## @param image.pullPolicy Redis image pull policy
   pullPolicy: Always
 
@@ -36,7 +37,7 @@ image:
 ## - standalone: Single Redis instance
 ## - replication: Master-replica setup (use sentinel.enabled to enable/disable Sentinel)
 ## - cluster: Multi-master setup with optional replicas
-architecture: standalone
+architecture: cluster
 
 ## @param replicaCount Number of Redis instances to deploy (only when architecture=(replication|cluster))
 ## When using architecture=replication:
@@ -82,7 +83,7 @@ service:
 
 auth:
   ## @param auth.enabled Enable Redis authentication
-  enabled: true
+  enabled: false
   ## @param auth.enabled Enable Sentinel authentication
   sentinel: true
   ## @param auth.password Redis password (if empty, random password will be generated)
@@ -144,7 +145,7 @@ cluster:
   ## @param cluster.announceHostnames Enable hostname-based announcements for Redis Cluster (recommended for Kubernetes)
   ## When enabled, Redis will announce pod hostnames instead of IPs, making cluster more resilient to pod restarts
   ## This addresses the issue where pod IP changes on restart cause connection errors
-  announceHostnames: false
+  announceHostnames: true
   ## @param cluster.config Additional cluster-specific configuration settings
   ## These settings are automatically applied when architecture=cluster
   config:
@@ -177,7 +178,7 @@ pdb:
 
 persistence:
   ## @param persistence.enabled Enable persistent storage
-  enabled: true
+  enabled: false
   ## @param persistence.storageClass Storage class to use for persistent volume
   storageClass: ""
   ## @param persistence.accessMode Access mode for persistent volume
