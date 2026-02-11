@@ -20,7 +20,6 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
-  clusterIP: None
   ports:
     - port: {{ .Values.service.port }}
       targetPort: redis
