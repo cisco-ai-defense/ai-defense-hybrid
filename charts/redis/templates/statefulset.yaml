@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis.fullname" . }}
+  namespace: {{ include "redis.namespace" . }}
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+  {{- if (include "redis.annotations" .) }}
+  annotations:
+{{- include "redis.tplvalues.render" (dict "value" (include "redis.annotations" .) "context" .) | indent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "redis.fullname" . }}-headless
+  replicas: 1
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "redis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "redis.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if .Values.config.existingConfigmap }}
+        checksum/config: {{ .Values.config.existingConfigmap | sha256sum }}
+        {{- else if .Values.config.content }}
+        checksum/config: {{ .Values.config.content | sha256sum }}
+        {{- end }}
+        {{- if .Values.extraConfig }}
+        checksum/extraConfig: {{ .Values.extraConfig | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+{{- with (include "redis.imagePullSecrets" .) }}
+{{ . | nindent 6 }}
+{{- end }}
+      securityContext: {{ include "redis.renderPodSecurityContext" . | nindent 8 }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext: {{ include "redis.renderContainerSecurityContext" . | nindent 12 }}
+          image: {{ include "redis.image" . | quote }}
+          imagePullPolicy: {{ include "redis.imagePullPolicy" . }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              CONFIG_FILE="{{ include "redis.configFullName" . }}"
+              redis-server "$CONFIG_FILE" {{- range .Values.extraFlags }} {{ . }}{{- end }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+            {{- range .Values.extraPorts }}
+            - containerPort: {{ .containerPort }}
+              name: {{ .name }}
+            {{- end }}
+          {{- with .Values.extraEnvVars }}
+          env:
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.startupProbe.successThreshold }}
+          {{- end }}
+          {{- if or .Values.customScripts.postStart.enabled .Values.customScripts.preStop.enabled }}
+          lifecycle:
+            {{- if .Values.customScripts.postStart.enabled }}
+            postStart:
+              exec:
+                command:
+                  {{- toYaml .Values.customScripts.postStart.command | nindent 18 }}
+            {{- end }}
+            {{- if .Values.customScripts.preStop.enabled }}
+            preStop:
+              exec:
+                command:
+                  {{- toYaml .Values.customScripts.preStop.command | nindent 18 }}
+            {{- end }}
+          {{- end }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            {{- if or .Values.config.content .Values.config.existingConfigmap }}
+            - name: config
+              mountPath: {{ .Values.config.mountPath }}
+            {{- end }}
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: data
+          emptyDir: {}
+        {{- if or .Values.config.content .Values.config.existingConfigmap }}
+        - name: config
+          configMap:
+            {{- if .Values.config.existingConfigmap }}
+            name: {{ .Values.config.existingConfigmap }}
+            {{- else }}
+            name: {{ include "redis.fullname" . }}-config
+            {{- end }}
+        {{- end }}
+        {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 30 }}

@@ -1,0 +1,261 @@
+## @section Global parameters
+global:
+  ## @param global.imageRegistry Global Docker Image registry
+  imageRegistry: ""
+  ## @param global.imagePullSecrets Global Docker registry secret names as an array
+  imagePullSecrets:
+  - "regcred"
+
+## @section Common parameters
+## @param nameOverride String to partially override redis.fullname
+nameOverride: ""
+## @param fullnameOverride String to fully override redis.fullname
+fullnameOverride: ""
+## @param namespaceOverride String to override the namespace for all resources
+namespaceOverride: ""
+## @param clusterDomain Kubernetes cluster domain
+clusterDomain: cluster.local
+## @param commonLabels Labels to add to all deployed objects
+commonLabels: {}
+## @param commonAnnotations Annotations to add to all deployed objects
+commonAnnotations: {}
+
+## @section Redis image parameters
+#* TODO: point towards our own image instead of using dockerhub
+image:
+  ## @param image.registry Redis image registry
+  registry: proxyimages.aidefense.security.cisco.com/proxy/aidefensehybrid/artifactory.devhub-cloud.cisco.com
+  ## @param image.repository Redis image repository
+  repository: ai-defense-hybrid-docker/redis
+  ## @param image.tag Redis image tag
+  tag: "v7.2.12-2026.02.03"
+  ## @param image.pullPolicy Redis image pull policy
+  pullPolicy: Always
+
+## @param revisionHistoryLimit Number of revisions to keep in history for rollback (set to 0 for unlimited)
+revisionHistoryLimit: 10
+
+## @section Pod labels and annotations
+## @param podLabels Map of labels to add to the pods
+podLabels: {}
+## @param podAnnotations Map of annotations to add to the pods
+podAnnotations: {}
+
+## @param ipFamily IP family to use for replica and sentinel announce IPs. Allowed values: auto, ipv4, ipv6
+## auto: Uses the first IP returned by hostname -i (default)
+## ipv4: Forces IPv4 address selection
+## ipv6: Forces IPv6 address selection
+ipFamily: auto
+
+service:
+  ## @param service.annotations Additional custom annotations for Redis service
+  annotations: {}
+  ## @param service.type Kubernetes service type
+  type: ClusterIP
+  ## @param service.port Redis service port
+  port: 6379
+  headless:
+    ## @param service.headless.annotations Additional custom annotations for Redis headless service
+    annotations: {}
+
+## @section config Redis configuration options
+config:
+  ## @param config.mountPath Redis configuration options
+  mountPath: /usr/local/etc/redis
+  ## @param config.content Include your custom Redis configurations here as string
+  ## If no config is provided, minimal config will be created on the fly
+  content: |
+    # Redis configuration
+    bind * -::*
+  ## param config.existingConfigmap Name of an existing Configmap to use instead of creating one
+  existingConfigmap: ""
+  ## param config.existingConfigmapKey Name of the key in the Configmap that should be used
+  existingConfigmapKey: ""
+
+## @param extraConfig Additional Redis configuration to be appended to the generated config
+## This provides flexibility to add any Redis configuration directives
+## Example:
+## extraConfig: |
+##   # Custom memory policy
+##   maxmemory-policy allkeys-lru
+##   maxmemory 256mb
+##
+##   # Custom save intervals
+##   save 900 1
+##   save 300 10
+extraConfig: ""
+
+## @param resources Resource limits and requests for Redis pod
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+## @param nodeSelector Node selector for pod assignment
+nodeSelector: {}
+
+## @param priorityClassName for pod eviction
+priorityClassName: ""
+
+## @param tolerations Tolerations for pod assignment
+tolerations: []
+
+## @param affinity Affinity rules for pod assignment
+affinity: {}
+
+## @param terminationGracePeriodSeconds Seconds Kubernetes waits for pod to terminate gracefully
+terminationGracePeriodSeconds: 30
+
+## @param topologySpreadConstraints Topology Spread Constraints for pod assignment
+topologySpreadConstraints: []
+
+containerSecurityContext:
+  ## @param containerSecurityContext.runAsUser User ID to run the container
+  runAsUser: 999
+  ## @param containerSecurityContext.runAsGroup Group ID to run the container
+  runAsGroup: 999
+  ## @param containerSecurityContext.runAsNonRoot Run as non-root user
+  runAsNonRoot: true
+  ## @param containerSecurityContext.privileged Set container's privileged mode
+  privileged: false
+  ## @param containerSecurityContext.allowPrivilegeEscalation Set Redis container's privilege escalation
+  allowPrivilegeEscalation: false
+  ## @param containerSecurityContext.readOnlyRootFilesystem Read-only root filesystem
+  readOnlyRootFilesystem: true
+  ## @param containerSecurityContext.capabilities Linux capabilities to be dropped
+  capabilities:
+    drop:
+      - ALL
+  ## @param containerSecurityContext.seccompProfile Seccomp profile for the container
+  seccompProfile:
+    type: RuntimeDefault
+
+## @param podSecurityContext Security context for the pod
+podSecurityContext:
+  ## @param podSecurityContext.fsGroup Set Redis pod's Security Context fsGroup
+  fsGroup: 999
+
+livenessProbe:
+  ## @param livenessProbe.enabled Enable liveness probe
+  enabled: true
+  ## @param livenessProbe.initialDelaySeconds Initial delay before starting probes
+  initialDelaySeconds: 30
+  ## @param livenessProbe.periodSeconds How often to perform the probe
+  periodSeconds: 10
+  ## @param livenessProbe.timeoutSeconds Timeout for each probe attempt
+  timeoutSeconds: 5
+  ## @param livenessProbe.failureThreshold Number of failures before pod is restarted
+  failureThreshold: 6
+  ## @param livenessProbe.successThreshold Number of successes to mark probe as successful
+  successThreshold: 1
+
+readinessProbe:
+  ## @param readinessProbe.enabled Enable readiness probe
+  enabled: true
+  ## @param readinessProbe.initialDelaySeconds Initial delay before starting probes
+  initialDelaySeconds: 5
+  ## @param readinessProbe.periodSeconds How often to perform the probe
+  periodSeconds: 10
+  ## @param readinessProbe.timeoutSeconds Timeout for each probe attempt
+  timeoutSeconds: 5
+  ## @param readinessProbe.failureThreshold Number of failures before pod is marked unready
+  failureThreshold: 6
+  ## @param readinessProbe.successThreshold Number of successes to mark probe as successful
+  successThreshold: 1
+
+startupProbe:
+  ## @param startupProbe.enabled Enable startup probe
+  enabled: false
+  ## @param startupProbe.initialDelaySeconds Initial delay before starting probes
+  initialDelaySeconds: 10
+  ## @param startupProbe.periodSeconds How often to perform the probe
+  periodSeconds: 10
+  ## @param startupProbe.timeoutSeconds Timeout for each probe attempt
+  timeoutSeconds: 5
+  ## @param startupProbe.failureThreshold Number of failures before pod is restarted (30 * 10s = 5 minutes)
+  failureThreshold: 30
+  ## @param startupProbe.successThreshold Number of successes to mark probe as successful
+  successThreshold: 1
+
+## @param extraEnvVars Additional environment variables to set
+extraEnvVars: []
+  # - name: CUSTOM_VAR
+  #   value: "custom-value"
+  # - name: SECRET_VAR
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-secret
+  #       key: secret-key
+
+## @param extraFlags Additional command-line flags to pass to redis-server
+## Example:
+## extraFlags:
+##   - --maxmemory 230mb
+##   - --maxmemory-policy volatile-lru
+extraFlags: []
+
+## @param extraPorts Additional ports to add to the pod and service
+## Example:
+## extraPorts:
+## - name: redis-cluster
+##   port: 16379
+##   targetPort: redis-cluster
+##   containerPort: 16379
+extraPorts: []
+
+## @param extraVolumes Additional volumes to add to the pod
+extraVolumes: []
+
+## @param extraVolumeMounts Additional volume mounts to add to the Redis container
+extraVolumeMounts: []
+
+## @param resources Resource limits and requests for Redis init container pod
+initContainer:
+  resources:
+    limits:
+      cpu: 50m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 64Mi
+
+## @param extraObjects Array of extra objects to deploy with the release
+extraObjects: []
+# - apiVersion: v1
+#   kind: ConfigMap
+#   metadata:
+#     name: extra-config
+#     namespace: "{{ include "common.namespace" . }}"
+#   data:
+#     key: value
+
+## @section Custom Scripts and Hooks
+customScripts:
+  ## @param customScripts.postStart PostStart lifecycle hook configuration
+  postStart:
+    ## @param customScripts.postStart.enabled Enable postStart lifecycle hook
+    enabled: false
+    ## @param customScripts.postStart.command Command to execute in postStart hook
+    command: []
+    # Example:
+    # - /bin/bash
+    # - -c
+    # - |
+    #   sleep 5
+    #   echo "Redis started"
+  ## @param customScripts.preStop PreStop lifecycle hook configuration
+  preStop:
+    ## @param customScripts.preStop.enabled Enable preStop lifecycle hook
+    ## NOTE: When enabled, this overrides the default preStop hook used by Sentinel
+    enabled: false
+    ## @param customScripts.preStop.command Command to execute in preStop hook
+    command: []
+    # Example:
+    # - /bin/bash
+    # - -c
+    # - |
+    #   sleep 10
+    #   redis-cli shutdown
