@@ -2,21 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "redis.fullname" . }}
-  namespace: {{ include "cloudpirates.namespace" . }}
+  namespace: {{ include "redis.namespace" . }}
   labels:
     {{- include "redis.labels" . | nindent 4 }}
   {{- $annotations := merge .Values.service.annotations .Values.commonAnnotations }}
-  {{- if or $annotations (and .Values.sentinel.enabled (eq .Values.architecture "replication")) }}
-  annotations:
   {{- if $annotations }}
-{{ include "cloudpirates.tplvalues.render" (dict "value" $annotations "context" .) | indent 4 }}
-  {{- end }}
-  {{- if and .Values.sentinel.enabled (eq .Values.architecture "replication") }}
-    # This service points to all Redis instances for Sentinel-based discovery
-    # Applications should use Sentinel clients to discover the current master
-    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  {{- else }}
-  {{- end }}
+  annotations:
+{{ include "redis.tplvalues.render" (dict "value" $annotations "context" .) | indent 4 }}
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
@@ -25,12 +17,6 @@ spec:
       targetPort: redis
       protocol: TCP
       name: redis
-    {{- if and .Values.sentinel.enabled (eq .Values.architecture "replication") }}
-    - port: {{ .Values.sentinel.port }}
-      targetPort: sentinel
-      protocol: TCP
-      name: sentinel
-    {{- end }}
     {{- range .Values.extraPorts }}
     - port: {{ .port }}
       targetPort: {{ .targetPort | default .name }}
@@ -38,8 +24,3 @@ spec:
     {{- end }}
   selector:
     {{- include "redis.selectorLabels" . | nindent 4 }}
-  {{- if and .Values.sentinel.enabled (eq .Values.architecture "replication") }}
-  # In Sentinel mode, this service points to all Redis instances
-  # Clients should use Sentinel to discover the current master
-  sessionAffinity: None
-  {{- end }}

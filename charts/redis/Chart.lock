@@ -1,6 +1,0 @@
-dependencies:
-- name: cloudpirates-common
-  repository: file://../cloudpirates-common
-  version: 2.1.0
-digest: sha256:348c8434034bc4332e7080a6bb82fe9714e21825b94fa3e67e6a6e23603d2c5a
-generated: "2026-01-27T12:43:09.200962-08:00"

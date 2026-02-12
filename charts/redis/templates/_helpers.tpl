@@ -2,263 +2,210 @@
 Expand the name of the chart.
 */}}
 {{- define "redis.name" -}}
-{{- include "cloudpirates.name" . -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
 */}}
 {{- define "redis.fullname" -}}
-{{- include "cloudpirates.fullname" . -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the namespace to use for resources.
+Defaults to .Release.Namespace but can be overridden via .Values.namespaceOverride.
+Useful for multi-namespace deployments in combined charts.
+*/}}
+{{- define "redis.namespace" -}}
+{{- default .Release.Namespace .Values.namespaceOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "redis.chart" -}}
-{{- include "cloudpirates.chart" . -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
 {{- define "redis.labels" -}}
-{{- include "cloudpirates.labels" . }}
+helm.sh/chart: {{ include "redis.chart" . }}
+{{ include "redis.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
 {{- define "redis.selectorLabels" -}}
-{{- include "cloudpirates.selectorLabels" . -}}
+app.kubernetes.io/name: {{ include "redis.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Common annotations
 */}}
 {{- define "redis.annotations" -}}
-{{- include "cloudpirates.annotations" . -}}
-{{- end }}
-
-{{/*
-Get the secret name for Redis password
-*/}}
-{{- define "redis.secretName" -}}
-{{- if .Values.auth.existingSecret }}
-{{- include "cloudpirates.tplvalues.render" (dict "value" .Values.auth.existingSecret "context" .) }}
-{{- else }}
-{{- include "redis.fullname" . }}
+{{- with .Values.commonAnnotations }}
+{{ toYaml . }}
 {{- end }}
 {{- end }}
 
 {{/*
-Get the secret key for Redis password
+Return the proper image name with registry and tag (tag includes digest if present)
 */}}
-{{- define "redis.secretPasswordKey" -}}
-{{- if .Values.auth.existingSecretPasswordKey }}
-{{- .Values.auth.existingSecretPasswordKey }}
-{{- else }}redis-password
-{{- end }}
+{{- define "redis.lib.image" -}}
+{{- $registryName := .image.registry -}}
+{{- $repositoryName := .image.repository -}}
+{{- $tag := .image.tag | toString -}}
+{{- if .global }}
+    {{- if .global.imageRegistry }}
+        {{- $registryName = .global.imageRegistry -}}
+    {{- end -}}
+{{- end -}}
+{{- if $registryName }}
+{{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
+{{- else -}}
+{{- printf "%s:%s" $repositoryName $tag -}}
+{{- end -}}
 {{- end }}
 
 {{/*
 Return the proper Redis image name
 */}}
 {{- define "redis.image" -}}
-{{- include "cloudpirates.image" (dict "image" .Values.image "global" .Values.global) -}}
+{{- include "redis.lib.image" (dict "image" .Values.image "global" .Values.global) -}}
 {{- end }}
+
+{{/*
+Return the proper image pull policy
+*/}}
+{{- define "redis.lib.imagePullPolicy" -}}
+{{- .image.imagePullPolicy | default .image.pullPolicy | default "Always" -}}
+{{- end }}
+
+{{/*
+Return the proper image pull policy
+*/}}
+{{- define "redis.imagePullPolicy" -}}
+{{- include "redis.lib.imagePullPolicy" (dict "image" .Values.image) -}}
+{{- end }}
+
+{{/*
+Render a value that contains template perhaps
+*/}}
+{{- define "redis.tplvalues.render" -}}
+  {{- $value := typeIs "string" .value | ternary .value (.value | toYaml) }}
+  {{- if contains "{{" (toString $value) }}
+    {{- tpl $value .context }}
+  {{- else }}
+    {{- $value }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Return the proper Docker Image Registry Secret Names evaluating values as templates
+{{ include "redis.lib.images.renderPullSecrets" ( dict "images" (list .Values.path.to.the.image1, .Values.path.to.the.image2) "context" $) }}
+*/}}
+{{- define "redis.lib.images.renderPullSecrets" -}}
+  {{- $pullSecrets := list }}
+  {{- $context := .context }}
+
+  {{- range (($context.Values.global).imagePullSecrets) -}}
+    {{- if kindIs "map" . -}}
+      {{- $pullSecrets = append $pullSecrets (include "redis.tplvalues.render" (dict "value" .name "context" $context)) -}}
+    {{- else -}}
+      {{- $pullSecrets = append $pullSecrets (include "redis.tplvalues.render" (dict "value" . "context" $context)) -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- range .images -}}
+    {{- range .pullSecrets -}}
+      {{- if kindIs "map" . -}}
+        {{- $pullSecrets = append $pullSecrets (include "redis.tplvalues.render" (dict "value" .name "context" $context)) -}}
+      {{- else -}}
+        {{- $pullSecrets = append $pullSecrets (include "redis.tplvalues.render" (dict "value" . "context" $context)) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- if (not (empty $pullSecrets)) -}}
+imagePullSecrets:
+    {{- range $pullSecrets | uniq }}
+  - name: {{ . }}
+    {{- end }}
+  {{- end }}
+{{- end -}}
 
 {{/*
 Return the proper Docker Image Registry Secret Names
 */}}
 {{- define "redis.imagePullSecrets" -}}
-{{ include "cloudpirates.images.renderPullSecrets" (dict "images" (list .Values.image) "context" .) }}
+{{ include "redis.lib.images.renderPullSecrets" (dict "images" (list .Values.image) "context" .) }}
 {{- end -}}
+
+{{/*
+Detect if the target platform is OpenShift (via .Values.targetPlatform or API group).
+Usage: {{ include "redis.isOpenshift" . }}
+*/}}
+{{- define "redis.isOpenshift" -}}
+{{- if or (eq (lower (default "" .Values.targetPlatform)) "openshift") (.Capabilities.APIVersions.Has "route.openshift.io/v1") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end }}
+
+{{/*
+Render podSecurityContext, omitting runAsUser, runAsGroup, fsGroup, and seLinuxOptions if OpenShift is detected.
+Usage: {{ include "redis.renderPodSecurityContext" . }}
+*/}}
+{{- define "redis.renderPodSecurityContext" -}}
+{{- $isOpenshift := include "redis.isOpenshift" . | trim }}
+{{- if eq $isOpenshift "true" }}
+{{- omit .Values.podSecurityContext "runAsUser" "runAsGroup" "fsGroup" "seLinuxOptions" | toYaml }}
+{{- else }}
+{{- toYaml .Values.podSecurityContext }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render containerSecurityContext, omitting runAsUser, runAsGroup, and seLinuxOptions if OpenShift is detected.
+Usage: {{ include "redis.renderContainerSecurityContext" . }}
+*/}}
+{{- define "redis.renderContainerSecurityContext" -}}
+{{- $isOpenshift := include "redis.isOpenshift" . | trim }}
+{{- if eq $isOpenshift "true" }}
+{{- omit .Values.containerSecurityContext "runAsUser" "runAsGroup" "seLinuxOptions" | toYaml }}
+{{- else }}
+{{- toYaml .Values.containerSecurityContext }}
+{{- end }}
+{{- end }}
 
 {{- define "redis.configFullName" -}}
 {{- if and .Values.config.existingConfigmapKey .Values.config.existingConfigmap }}
 {{- printf "%s/%s" .Values.config.mountPath .Values.config.existingConfigmapKey }}
 {{- else }}
 {{- printf "%s/redis.conf" .Values.config.mountPath }}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the proper Redis Sentinel image name
-*/}}
-{{- define "redis.sentinel.image" -}}
-{{- include "cloudpirates.image" (dict "image" .Values.sentinel.image "global" .Values.global) -}}
-{{- end }}
-
-{{/*
-Return the proper Redis metrics image name
-*/}}
-{{- define "redis.metrics.image" -}}
-{{- include "cloudpirates.image" (dict "image" .Values.metrics.image "global" .Values.global) -}}
-{{- end }}
-
-{{/*
-Sentinel selector labels
-*/}}
-{{- define "redis.sentinel.selectorLabels" -}}
-{{- include "redis.selectorLabels" . }}
-app.kubernetes.io/component: sentinel
-{{- end }}
-
-{{/*
-Generate Redis CLI command with automated auth
-*/}}
-{{- define "redis.cli" -}}
-redis-cli
-{{- end -}}
-
-{{/*
-Generate Redis CLI ping command with automated auth
-*/}}
-{{- define "redis.ping" -}}
-{{ include "redis.cli" . }} ping
-{{- end -}}
-
-
-{{/*
-Generate Sentinel CLI command with automated auth and connection info
-*/}}
-{{- define "redis.sentinelCli" -}}
-{{- if .auth -}}
-redis-cli -h {{ include "redis.fullname" .context }}-sentinel -p {{ .context.Values.sentinel.port }} -a "${REDIS_PASSWORD}"
-{{- else -}}
-redis-cli -h {{ include "redis.fullname" .context }}-sentinel -p {{ .context.Values.sentinel.port }}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Common Sentinel master query command
-*/}}
-{{- define "redis.sentinelMasterQuery" -}}
-{{- include "redis.sentinelCli" (dict "auth" .auth "context" .context) }} sentinel get-master-addr-by-name {{ .context.Values.sentinel.masterName }}
-{{- end -}}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "redis.serviceAccountName" -}}
-{{- if or .Values.serviceAccount.create (and .Values.sentinel.enabled .Values.sentinel.masterService.enabled) }}
-{{- default (include "redis.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
-{{/*
-Return the ACL file name
-*/}}
-{{- define "redis.auth.acl.file" -}}
-{{- default "users.acl" .Values.auth.acl.existingSecretACLKey -}}
-{{- end -}}
-
-{{/*
-Return the full path to the ACL file
-*/}}
-{{- define "redis.auth.acl.path" -}}
-{{- printf "/etc/redis/%s" (include "redis.auth.acl.file" .) -}}
-{{- end -}}
-
-{{/*
-Shell script block to check if ACL file exists, fails if not
-Usage: {{ include "redis.auth.acl.checkFile" . }}
-*/}}
-{{- define "redis.auth.acl.checkFile" -}}
-{{- $aclPath := include "redis.auth.acl.path" . -}}
-if [ ! -f '{{ $aclPath }}' ]; then
-  echo "ERROR: ACL file '{{ $aclPath }}' not found"
-  exit 1
-fi
-{{ end }}
-
-{{/*
-Shell command to extract password for a user from ACL file
-Usage: {{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" $) }}
-*/}}
-{{- define "redis.auth.acl.awkCommand" -}}
-{{- $aclPath := include "redis.auth.acl.path" .context -}}
-awk '$1=="user" && $2=="{{ .user }}" { for (i=3; i<=NF; i++) if ($i ~ /^>/) { print substr($i,2); break } }' '{{ $aclPath }}'
-{{- end -}}
-
-{{/*
-Script block to setup ACL passwords in shell scripts
-Usage: {{ include "redis.auth.acl.setupScript" (dict "type" "init|sentinel|metrics|job|prestop|probe" "context" $) }}
-*/}}
-{{- define "redis.auth.acl.setupScript" -}}
-{{- if .context.Values.auth.acl.enabled }}
-{{- $aclPath := include "redis.auth.acl.path" .context -}}
-{{ include "redis.auth.acl.checkFile" .context }}
-{{- if eq .type "init" -}}
-echo "aclfile {{ $aclPath }}" >> /tmp/redis.conf
-REDIS_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$REDIS_PASSWORD" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' in '{{ $aclPath }}'"
-  exit 1
-fi
-REDIS_SENTINEL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "sentinel" "context" .context) }})
-if ! echo "$REDIS_SENTINEL_PASSWORD" | grep -q '[^[:space:]]'; then REDIS_SENTINEL_PASSWORD="$REDIS_PASSWORD"; fi
-{{- else if eq .type "sentinel" -}}
-REDIS_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$REDIS_PASSWORD" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' in '{{ $aclPath }}'"
-  exit 1
-fi
-REDIS_SENTINEL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "sentinel" "context" .context) }})
-[ -z "$REDIS_SENTINEL_PASSWORD" ] && REDIS_SENTINEL_PASSWORD="$REDIS_PASSWORD"
-{{- else if eq .type "metrics" -}}
-ACL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$ACL_PASSWORD" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' in '{{ $aclPath }}'"
-  exit 1
-fi
-export REDIS_PASSWORD="$ACL_PASSWORD"
-{{- else if eq .type "job" -}}
-ACL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$ACL_PASSWORD" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' in '{{ $aclPath }}'"
-  exit 1
-fi
-export REDIS_PASSWORD="$ACL_PASSWORD"
-export REDISCLI_AUTH="$ACL_PASSWORD"
-{{- else if eq .type "prestop" -}}
-ACL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$ACL_PASSWORD" ]; then
-    echo "ERROR: ACL is enabled but no password found for 'user default' in '{{ $aclPath }}'"
-    exit 1
-fi
-export REDISCLI_AUTH="$ACL_PASSWORD"
-export REDIS_PASSWORD="$ACL_PASSWORD"
-SENTINEL_ACL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "sentinel" "context" .context) }})
-if [ -n "$SENTINEL_ACL_PASSWORD" ]; then
-    export REDIS_SENTINEL_PASSWORD="$SENTINEL_ACL_PASSWORD"
-else
-    export REDIS_SENTINEL_PASSWORD="$REDIS_PASSWORD"
-fi
-{{- else if eq .type "probe" -}}
-export REDISCLI_AUTH=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$REDISCLI_AUTH" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' in '{{ $aclPath }}'"
-  exit 1
-fi
-{{- else if eq .type "sentinel-probe" -}}
-export REDIS_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "sentinel" "context" .context) }})
-[ -z "$REDIS_PASSWORD" ] && export REDIS_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$REDIS_PASSWORD" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' or 'user sentinel' in '{{ $aclPath }}'"
-  exit 1
-fi
-{{- else if eq .type "master-discovery" -}}
-ACL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "sentinel" "context" .context) }})
-[ -z "$ACL_PASSWORD" ] && ACL_PASSWORD=$({{ include "redis.auth.acl.awkCommand" (dict "user" "default" "context" .context) }})
-if [ -z "$ACL_PASSWORD" ]; then
-  echo "ERROR: ACL is enabled but no password found for 'user default' or 'user sentinel' in '{{ $aclPath }}'"
-  exit 1
-fi
-REDIS_PASSWORD="$ACL_PASSWORD"
-{{- end -}}
 {{- end -}}
 {{- end -}}
