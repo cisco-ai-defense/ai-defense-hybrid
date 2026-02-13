@@ -40,10 +40,11 @@ The following table lists the configurable parameters of the Redis chart and the
 
 ### Global Parameters
 
-| Parameter                 | Description                           | Default      |
-| ------------------------- | ------------------------------------- | ------------ |
-| `global.imageRegistry`    | Global Docker image registry override | `""`         |
-| `global.imagePullSecrets` | Global Docker registry secret names   | `["regcred"]` |
+| Parameter                            | Description                                                                             | Default       |
+| ------------------------------------ | --------------------------------------------------------------------------------------- | ------------- |
+| `global.imageRegistry`               | Global Docker image registry override                                                   | `""`          |
+| `global.imagePullSecrets`            | Global Docker registry secret names                                                     | `["regcred"]` |
+| `global.replicated.dockerconfigjson` | Replicated Docker config JSON filled during packaging and should not be overridden      | `""`          |
 
 ### Common Parameters
 
