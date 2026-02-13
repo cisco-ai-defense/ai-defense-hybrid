@@ -5,7 +5,9 @@ global:
   ## @param global.imagePullSecrets Global Docker registry secret names as an array
   imagePullSecrets:
   - "regcred"
-
+  ## @param global.replicated.dockerconfigjson Replicated Docker config JSON filled durign packaging and should not be overriden
+  replicated:
+    dockerconfigjson: ""
 ## @section Common parameters
 ## @param nameOverride String to partially override redis.fullname
 nameOverride: ""
