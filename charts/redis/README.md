@@ -4,6 +4,10 @@ An open source, in-memory data structure store used as a database, cache, and me
 
 This chart deploys a single Redis instance with ephemeral storage, suitable for caching and development environments.
 
+## Attribution
+
+This chart is based on original work by Cloud Pirates and has been modified by Cisco Systems, Inc. for use with AI Defense Hybrid. The original work and modifications are licensed under the Apache License, Version 2.0.
+
 ## Quick Start
 
 ### Prerequisites
