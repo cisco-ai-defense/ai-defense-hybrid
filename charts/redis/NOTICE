@@ -1,8 +1,8 @@
 Redis Helm Chart
-Copyright 2025 Cisco Systems, Inc. and its affiliates
+Copyright 2026 CloudPirates GmbH & Co. KG
 
-This product contains software originally developed by Cloud Pirates.
-The original work has been modified by Cisco Systems, Inc.
+This product contains software originally developed by CloudPirates GmbH & Co. KG.
+The original work has been modified by CloudPirates GmbH & Co. KG.
 
 Modifications include:
 - Updated image registry to use Cisco internal registry
