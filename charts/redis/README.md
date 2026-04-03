@@ -6,7 +6,9 @@ This chart deploys a single Redis instance with ephemeral storage, suitable for 
 
 ## Attribution
 
-This chart is based on original work by CloudPirates GmbH & Co. KG and has been modified by Cisco Systems, Inc. for use with AI Defense Hybrid. The original work and modifications are licensed under the Apache License, Version 2.0.
+This chart is a fork of the original CloudPirates Redis chart at `https://github.com/CloudPirates-io/helm-charts/tree/main/charts/redis` and has been modified by Cisco Systems, Inc. for use with AI Defense Hybrid. The original work and these modifications are licensed under the Apache License, Version 2.0.
+
+Cisco modifications from the original chart are explained in [NOTICE](NOTICE).
 
 ## Quick Start
 
