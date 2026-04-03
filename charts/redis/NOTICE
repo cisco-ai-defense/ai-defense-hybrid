@@ -1,0 +1,17 @@
+Redis Helm Chart
+Copyright 2026 CloudPirates GmbH & Co. KG
+
+This product contains software originally developed by CloudPirates GmbH & Co. KG.
+The original work has been modified by Cisco Systems, Inc.
+
+Modifications include:
+- Updated image registry to use Cisco internal registry
+- Added custom configuration for AI Defense Hybrid deployment
+- Modified values and templates for Cisco-specific requirements
+- Added license headers to all files
+
+The original work and this derivative work are licensed under the
+Apache License, Version 2.0 (the "License"). You may obtain a copy
+of the License at:
+
+    http://www.apache.org/licenses/LICENSE-2.0

@@ -4,6 +4,12 @@ An open source, in-memory data structure store used as a database, cache, and me
 
 This chart deploys a single Redis instance with ephemeral storage, suitable for caching and development environments.
 
+## Attribution
+
+This chart is a fork of the original CloudPirates Redis chart at `https://github.com/CloudPirates-io/helm-charts/tree/main/charts/redis` and has been modified by Cisco Systems, Inc. for use with AI Defense Hybrid. The original work and these modifications are licensed under the Apache License, Version 2.0.
+
+Cisco modifications from the original chart are explained in [NOTICE](NOTICE).
+
 ## Quick Start
 
 ### Prerequisites
