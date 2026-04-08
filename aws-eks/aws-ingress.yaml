@@ -18,12 +18,11 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress 
 metadata: 
   name: onprem-runtime-ingress 
-  namespace: <placeholder> 
-  annotations: 
-    kubernetes.io/ingress.class: nginx  # Links to NGINX Ingress Controller 
-spec: 
+  namespace: ai-defense # Replace with your namespace
+spec:
+  ingressClassName: nginx
   rules: 
-  - host: <placeholder> 
+  - host: aid-runtime.mycompany.internal # Replace with your domain name
     http: 
       paths: 
       - path: /api/v1/inspect 
@@ -42,5 +41,5 @@ spec:
               number: 8080 
   tls: 
   - hosts: 
-    - example.com 
+    - aid-runtime.mycompany.internal # Replace with your domain name
     secretName: aid-tls-secret  # TLS secret for HTTPS
