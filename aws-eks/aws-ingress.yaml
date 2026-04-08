@@ -19,9 +19,8 @@ kind: Ingress
 metadata: 
   name: onprem-runtime-ingress 
   namespace: <placeholder> 
-  annotations: 
-    kubernetes.io/ingress.class: nginx  # Links to NGINX Ingress Controller 
 spec: 
+  ingressClassName: nginx
   rules: 
   - host: <placeholder> 
     http: 
