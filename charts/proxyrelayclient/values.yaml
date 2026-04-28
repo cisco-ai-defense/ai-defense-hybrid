@@ -12,114 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## @section Global parameters
-global:
-  ## @param global.imageRegistry Global Docker Image registry
-  imageRegistry: ""
-  ## @param global.imagePullSecrets Global Docker registry secret names as an array
-  imagePullSecrets:
-  - "regcred"
+image: proxyimages.aidefense.security.cisco.com/proxy/aidefensehybrid/artifactory.devhub-cloud.cisco.com/ai-defense-hybrid-docker/proxyrelayclient:latest
+imagePullPolicy: Always
 
-## @section Common parameters
-## @param nameOverride String to partially override proxyrelayclient.fullname
-nameOverride: ""
-## @param fullnameOverride String to fully override proxyrelayclient.fullname
-fullnameOverride: ""
-## @param namespaceOverride String to override the namespace for all resources
-namespaceOverride: ""
-## @param commonLabels Labels to add to all deployed objects
-commonLabels: {}
-## @param commonAnnotations Annotations to add to all deployed objects
-commonAnnotations: {}
-
-## @section Proxy relay client image parameters
-image:
-  ## @param image.registry Proxy relay client image registry
-  registry: proxyimages.aidefense.security.cisco.com/proxy/aidefensehybrid/artifactory.devhub-cloud.cisco.com
-  ## @param image.repository Proxy relay client image repository
-  repository: ai-defense-hybrid-docker/proxyrelayclient
-  ## @param image.tag Proxy relay client image tag
-  tag: "latest"
-  ## @param image.pullPolicy Proxy relay client image pull policy
-  pullPolicy: Always
-
-## @param replicaCount Number of proxy relay client replicas
 replicaCount: 1
 
-## @param revisionHistoryLimit Number of revisions to keep in history for rollback
-revisionHistoryLimit: 10
-
-## @section Pod labels and annotations
-## @param podLabels Map of labels to add to the pods
-podLabels: {}
-## @param podAnnotations Map of annotations to add to the pods
-podAnnotations: {}
-
-## @section Tunnel client configuration
 config:
-  ## @param config.serverAddr Address of the proxy relay server (cloud gateway gRPC endpoint)
   serverAddr: ""
-  ## @param config.connectorId Unique connector identifier for this hybrid deployment
   connectorId: ""
-  ## @param config.existingSecret Name of an existing Secret containing authentication credentials
-  ## The secret must contain either 'apikey' or 'oidc-token' key
+  # Reference a pre-existing Secret containing 'apikey' or 'oidc-token' key
   existingSecret: ""
-  ## @param config.apiKey API key for authentication (ignored if existingSecret is set)
+  # Inline API key (creates a managed Secret; ignored if existingSecret is set)
   apiKey: ""
 
-## @section Service parameters
 service:
-  ## @param service.annotations Additional custom annotations for service
-  annotations: {}
-  ## @param service.type Kubernetes service type
   type: ClusterIP
-  ## @param service.healthzPort Health check endpoint port
   healthzPort: 8080
 
-## @section Health probe parameters
 livenessProbe:
-  ## @param livenessProbe.enabled Enable liveness probe
   enabled: true
-  ## @param livenessProbe.initialDelaySeconds Initial delay before starting probes
   initialDelaySeconds: 10
-  ## @param livenessProbe.periodSeconds How often to perform the probe
   periodSeconds: 10
-  ## @param livenessProbe.timeoutSeconds Timeout for each probe attempt
   timeoutSeconds: 5
-  ## @param livenessProbe.failureThreshold Number of failures before pod is restarted
   failureThreshold: 6
-  ## @param livenessProbe.successThreshold Number of successes to mark probe as successful
-  successThreshold: 1
 
 readinessProbe:
-  ## @param readinessProbe.enabled Enable readiness probe
   enabled: true
-  ## @param readinessProbe.initialDelaySeconds Initial delay before starting probes
   initialDelaySeconds: 5
-  ## @param readinessProbe.periodSeconds How often to perform the probe
   periodSeconds: 10
-  ## @param readinessProbe.timeoutSeconds Timeout for each probe attempt
   timeoutSeconds: 5
-  ## @param readinessProbe.failureThreshold Number of failures before pod is marked unready
   failureThreshold: 6
-  ## @param readinessProbe.successThreshold Number of successes to mark probe as successful
-  successThreshold: 1
 
-startupProbe:
-  ## @param startupProbe.enabled Enable startup probe
-  enabled: false
-  ## @param startupProbe.initialDelaySeconds Initial delay before starting probes
-  initialDelaySeconds: 5
-  ## @param startupProbe.periodSeconds How often to perform the probe
-  periodSeconds: 10
-  ## @param startupProbe.timeoutSeconds Timeout for each probe attempt
-  timeoutSeconds: 5
-  ## @param startupProbe.failureThreshold Number of failures before pod is restarted
-  failureThreshold: 30
-  ## @param startupProbe.successThreshold Number of successes to mark probe as successful
-  successThreshold: 1
-
-## @param resources Resource limits and requests
 resources:
   limits:
     cpu: 200m
@@ -128,57 +51,22 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-## @param nodeSelector Node selector for pod assignment
-nodeSelector: {}
-
-## @param priorityClassName Priority class for pod eviction
-priorityClassName: ""
-
-## @param tolerations Tolerations for pod assignment
-tolerations: []
-
-## @param affinity Affinity rules for pod assignment
-affinity: {}
-
-## @param terminationGracePeriodSeconds Seconds Kubernetes waits for pod to terminate gracefully
-terminationGracePeriodSeconds: 30
-
-## @param topologySpreadConstraints Topology Spread Constraints for pod assignment
-topologySpreadConstraints: []
+podSecurityContext:
+  fsGroup: 65534
 
 containerSecurityContext:
-  ## @param containerSecurityContext.runAsUser User ID to run the container
   runAsUser: 65534
-  ## @param containerSecurityContext.runAsGroup Group ID to run the container
   runAsGroup: 65534
-  ## @param containerSecurityContext.runAsNonRoot Run as non-root user
   runAsNonRoot: true
-  ## @param containerSecurityContext.privileged Set container's privileged mode
   privileged: false
-  ## @param containerSecurityContext.allowPrivilegeEscalation Set container's privilege escalation
   allowPrivilegeEscalation: false
-  ## @param containerSecurityContext.readOnlyRootFilesystem Read-only root filesystem
   readOnlyRootFilesystem: true
-  ## @param containerSecurityContext.capabilities Linux capabilities to be dropped
   capabilities:
     drop:
       - ALL
-  ## @param containerSecurityContext.seccompProfile Seccomp profile for the container
   seccompProfile:
     type: RuntimeDefault
 
-## @param podSecurityContext Security context for the pod
-podSecurityContext:
-  ## @param podSecurityContext.fsGroup Set pod's Security Context fsGroup
-  fsGroup: 65534
-
-## @param extraEnvVars Additional environment variables to set
-extraEnvVars: []
-  # - name: CUSTOM_VAR
-  #   value: "custom-value"
-
-## @param extraVolumes Additional volumes to add to the pod
-extraVolumes: []
-
-## @param extraVolumeMounts Additional volume mounts to add to the container
-extraVolumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}

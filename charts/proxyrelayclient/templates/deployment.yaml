@@ -16,16 +16,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "proxyrelayclient.fullname" . }}
-  namespace: {{ include "proxyrelayclient.namespace" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "proxyrelayclient.labels" . | nindent 4 }}
-  {{- if (include "proxyrelayclient.annotations" .) }}
-  annotations:
-{{- include "proxyrelayclient.tplvalues.render" (dict "value" (include "proxyrelayclient.annotations" .) "context" .) | indent 4 }}
-  {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "proxyrelayclient.selectorLabels" . | nindent 6 }}
@@ -33,28 +28,17 @@ spec:
     metadata:
       labels:
         {{- include "proxyrelayclient.selectorLabels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
       annotations:
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
-        {{- with .Values.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
     spec:
-{{- with (include "proxyrelayclient.imagePullSecrets" .) }}
-{{ . | nindent 6 }}
-{{- end }}
-      securityContext: {{ include "proxyrelayclient.renderPodSecurityContext" . | nindent 8 }}
-      {{- with .Values.topologySpreadConstraints }}
-      topologySpreadConstraints:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext: {{ include "proxyrelayclient.renderContainerSecurityContext" . | nindent 12 }}
-          image: {{ include "proxyrelayclient.image" . | quote }}
-          imagePullPolicy: {{ include "proxyrelayclient.imagePullPolicy" . }}
+        - name: proxyrelayclient
+          image: {{ .Values.image | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           ports:
             - name: healthz
               containerPort: {{ .Values.service.healthzPort }}
@@ -89,9 +73,6 @@ spec:
                   name: {{ include "proxyrelayclient.fullname" . }}
                   key: apikey
             {{- end }}
-            {{- with .Values.extraEnvVars }}
-{{ toYaml . | indent 12 }}
-            {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
@@ -101,7 +82,6 @@ spec:
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
-            successThreshold: {{ .Values.livenessProbe.successThreshold }}
           {{- end }}
           {{- if .Values.readinessProbe.enabled }}
           readinessProbe:
@@ -112,28 +92,9 @@ spec:
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
-            successThreshold: {{ .Values.readinessProbe.successThreshold }}
           {{- end }}
-          {{- if .Values.startupProbe.enabled }}
-          startupProbe:
-            httpGet:
-              path: /healthz
-              port: healthz
-            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
-            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
-            successThreshold: {{ .Values.startupProbe.successThreshold }}
-          {{- end }}
-          resources: {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.extraVolumeMounts }}
-          volumeMounts:
-            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
-          {{- end }}
-      {{- if .Values.extraVolumes }}
-      volumes:
-        {{- toYaml .Values.extraVolumes | nindent 8 }}
-      {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -142,11 +103,7 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.priorityClassName }}
-      priorityClassName: {{ . }}
-      {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 30 }}
