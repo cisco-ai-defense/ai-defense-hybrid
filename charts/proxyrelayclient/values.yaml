@@ -182,6 +182,3 @@ extraVolumes: []
 
 ## @param extraVolumeMounts Additional volume mounts to add to the container
 extraVolumeMounts: []
-
-## @param extraObjects Array of extra objects to deploy with the release
-extraObjects: []
