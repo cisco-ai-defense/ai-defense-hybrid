@@ -59,13 +59,6 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.config.existingSecret }}
                   key: apikey
-                  optional: true
-            - name: CISCO_AID_OIDC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.config.existingSecret }}
-                  key: oidc-token
-                  optional: true
             {{- else if .Values.config.apiKey }}
             - name: CISCO_AID_APIKEY
               valueFrom:
